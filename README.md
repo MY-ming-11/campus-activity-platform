@@ -141,6 +141,10 @@ Nginx 在这个组合里干三件事：托管前端静态文件、把 `/api` 反
 | admin | admin123 | 管理员 |
 | student | 123456 | 学生 |
 
+登录页上的一键填充按钮**只在开发模式显示**（`npm run dev`）。生产构建时那个组件是动态引入的，`import.meta.env.DEV` 为 false 后整个 import 落进死分支被摇掉，连 chunk 都不会生成——我在服务器实际返回的 1.1MB 主包里搜过，`admin123` 零命中。
+
+注意这只隐藏了"提示"，账号本身还在。**部署到公网前必须把这两个账号改掉或删掉**，做法见 [docs/deployment.md](docs/deployment.md) 第六节。
+
 ### 跑一次压测
 
 服务启动后，在项目根目录执行（JDK 21 单文件直接运行，不需要装 JMeter）：

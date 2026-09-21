@@ -92,7 +92,24 @@ curl http://localhost/api/activities            # 期望 {"code":0,...,"records"
 
 然后在浏览器打开 `http://你的服务器IP`，用 `admin / admin123` 登录管理端，建一场活动试试。
 
-**记得改掉默认密码**，或者至少把 `admin` 账号删掉。演示账号是给本机开发用的，公网上留着等于门没锁。
+**必须改掉默认密码，或者把 `admin` 账号删掉。** 演示账号是给本机开发用的，公网上留着等于门没锁。
+
+登录页上的一键填充按钮在生产构建里已经不会出现了（那个组件只在开发模式加载），但那只是没了提示——账号本身还在，密码也是公开的。
+
+现在还没有"修改密码"的功能（这是后面要补的），临时做法是注册一个新账号再提权，然后删掉默认的：
+
+```bash
+# 1. 先在登录页注册一个新账号，比如 luosh
+# 2. 把它提成管理员
+docker compose exec mysql mysql -uroot -p
+```
+
+```sql
+USE activity_platform;
+UPDATE sys_user SET role = 'ADMIN' WHERE username = 'luosh';
+DELETE FROM sys_user WHERE username = 'admin';
+-- student 账号按需保留，密码记得改（同样只能靠注册新号 + 删除旧号）
+```
 
 ## 七、域名和 HTTPS（可选）
 

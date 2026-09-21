@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref } from 'vue'
+import { defineAsyncComponent, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '@/stores/user'
@@ -69,6 +69,20 @@ function fillDemo(username, password) {
   loginForm.username = username
   loginForm.password = password
 }
+
+/**
+ * 演示账号快捷填充只在开发模式加载。
+ *
+ * 注意不能只写成 <div v-if="import.meta.env.DEV">：
+ * v-if 是运行时判断，Vue 编译出来是个三元表达式，压缩器摇不掉，
+ * 密码字符串照样会留在 JS 产物里，扒一下就能看到。
+ *
+ * 用动态 import 就不一样了：构建时 import.meta.env.DEV 被替换成 false，
+ * 整个 import 落进死分支，Rollup 会连带模块一起摇掉，chunk 根本不会生成。
+ */
+const DemoAccounts = import.meta.env.DEV
+  ? defineAsyncComponent(() => import('@/components/DemoAccounts.vue'))
+  : null
 </script>
 
 <template>
@@ -151,17 +165,7 @@ function fillDemo(username, password) {
           </el-tab-pane>
         </el-tabs>
 
-        <div class="login__demo">
-          <span class="label">演示账号</span>
-          <div class="login__demo-row">
-            <button type="button" class="login__demo-btn" @click="fillDemo('student', '123456')">
-              学生 student / 123456
-            </button>
-            <button type="button" class="login__demo-btn" @click="fillDemo('admin', 'admin123')">
-              管理员 admin / admin123
-            </button>
-          </div>
-        </div>
+        <component :is="DemoAccounts" v-if="DemoAccounts" @pick="fillDemo" />
       </div>
     </div>
   </div>
@@ -220,35 +224,6 @@ function fillDemo(username, password) {
 .login__submit {
   width: 100%;
   margin-top: 4px;
-}
-
-.login__demo {
-  margin-top: 18px;
-  padding-top: 16px;
-  border-top: 1px dashed var(--line);
-}
-
-.login__demo-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 9px;
-}
-
-.login__demo-btn {
-  border: 1px solid var(--line);
-  background: #fbfcfe;
-  border-radius: 7px;
-  padding: 6px 11px;
-  font-size: 12px;
-  color: var(--ink-soft);
-  cursor: pointer;
-  font-family: inherit;
-}
-
-.login__demo-btn:hover {
-  border-color: var(--signal);
-  color: var(--signal);
 }
 
 @media (max-width: 860px) {

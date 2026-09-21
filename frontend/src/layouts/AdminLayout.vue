@@ -145,18 +145,51 @@ function logout() {
   .admin {
     flex-direction: column;
   }
+
+  /* 侧边栏在手机上变成两行工具栏：
+     第一行「品牌 …… 回到前台」，第二行导航。
+     挤成一行的话「数据看板」会被压成一列一个字。 */
   .side {
     width: 100%;
     flex-direction: row;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 14px;
-    padding: 12px 14px;
+    gap: 8px;
+    padding: 10px 12px;
   }
+
+  .side__brand {
+    padding: 0;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
   .side__nav {
-    flex: 0;
+    /* 强制换到第二行。用 flex: 0 0 100% 而不是 width: 100%，
+       因为它是 flex 子项，flex-basis 才是决定换行的那个值 */
+    flex: 0 0 100%;
+    display: flex;
+    gap: 4px;
   }
+
+  .side__link {
+    padding: 6px 10px;
+    font-size: 13px;
+    /* 不加这句，导航文字会被挤成竖排 */
+    white-space: nowrap;
+  }
+
   .side__back {
     margin-left: auto;
+    padding: 0;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  .admin__top {
+    height: 48px;
+    padding: 0 14px;
+    gap: 12px;
   }
 }
 </style>

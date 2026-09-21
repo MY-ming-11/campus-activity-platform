@@ -221,7 +221,9 @@ onUnmounted(() => clearInterval(timer))
 
 .code {
   margin: 10px 0 6px;
-  font-size: 58px;
+  /* 用 clamp 跟着视口缩放：手机上 58px 的六位数加字距会顶出卡片。
+     13vw 在 390px 宽的屏幕上约 50px，到桌面端封顶 58px。 */
+  font-size: clamp(38px, 13vw, 58px);
   font-weight: 600;
   letter-spacing: 0.12em;
   line-height: 1.1;

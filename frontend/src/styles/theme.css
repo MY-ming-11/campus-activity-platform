@@ -57,6 +57,17 @@ body {
 }
 
 .page {
+  /*
+   * width: 100% 不能省。
+   *
+   * 管理端的 .admin__main 是个纵向 flex 容器，.page 是它的子项。
+   * 而 .page 上写了 margin: 0 auto —— 在 flex 里，auto 外边距的优先级高于
+   * align-items: stretch，子项不会被拉伸到容器宽度，而是变成"按内容宽度"再居中。
+   * 结果就是表格一宽，整页宽度跟着内容撑开，手机上横向溢出。
+   *
+   * 明写 width: 100% 让宽度由容器决定，超宽的内容再由各自的滚动容器去处理。
+   */
+  width: 100%;
   max-width: 1120px;
   margin: 0 auto;
   padding: 28px 24px 64px;

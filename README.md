@@ -26,6 +26,12 @@
 
 ![Docker 部署](output/playwright/09-Docker部署-活动列表.png)
 
+管理端在手机上同样可用（360px 宽起）：
+
+| 数据看板 | 活动管理 | 核销台 |
+|---|---|---|
+| ![手机看板](output/playwright/11-手机-数据看板.png) | ![手机活动管理](output/playwright/12-手机-活动管理.png) | ![手机核销台](output/playwright/13-手机-核销台.png) |
+
 ## 技术栈
 
 | 层 | 选型 |

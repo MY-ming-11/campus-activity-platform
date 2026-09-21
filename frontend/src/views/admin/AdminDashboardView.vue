@@ -41,6 +41,11 @@ function shortDate(date) {
   return date?.slice(5) ?? ''
 }
 
+/** 手机上只显示"日"，14 个标签才塞得下 */
+function dayOf(date) {
+  return date?.slice(8) ?? ''
+}
+
 function rateClass(rate) {
   if (rate >= 80) return 'rate--good'
   if (rate < 50) return 'rate--low'
@@ -102,7 +107,10 @@ onMounted(load)
                 :style="{ height: barHeight(point.count) }"
               ></div>
             </div>
-            <span class="trend__date tnum">{{ shortDate(point.date) }}</span>
+            <span class="trend__date tnum">
+              <span class="trend__date-full">{{ shortDate(point.date) }}</span>
+              <span class="trend__date-day">{{ dayOf(point.date) }}</span>
+            </span>
           </div>
         </div>
       </section>
@@ -207,6 +215,9 @@ onMounted(load)
 
 .trend__col {
   flex: 1;
+  /* 不写这句的话，flex 子项的最小宽度等于内容宽度，
+     14 个日期标签会把整条趋势图撑得比手机屏幕还宽 */
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -242,6 +253,10 @@ onMounted(load)
   font-size: 11px;
   color: var(--muted);
   white-space: nowrap;
+}
+
+.trend__date-day {
+  display: none;
 }
 
 .legend {
@@ -340,9 +355,12 @@ onMounted(load)
   .trend {
     gap: 3px;
   }
-  .trend__date {
-    transform: rotate(-60deg);
-    transform-origin: center;
+  /* 14 个「09-08」这种标签横着排不下，换成只显示「08」 */
+  .trend__date-full {
+    display: none;
+  }
+  .trend__date-day {
+    display: inline;
   }
 }
 </style>

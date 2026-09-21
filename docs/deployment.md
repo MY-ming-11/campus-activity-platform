@@ -53,7 +53,7 @@ cd campus-activity-platform
 ```bash
 cp .env.example .env
 openssl rand -base64 48        # 生成一个随机密钥，复制下来
-vi .env
+nano .env
 ```
 
 `.env` 里要改两个值：
@@ -64,6 +64,10 @@ vi .env
 `WEB_PORT` 在服务器上保持 `80`，不用动；本机 80 被占用时才改成 8000。
 
 `.env` 已经被 `.gitignore` 排除，不会进仓库。
+
+**nano 怎么用**：方向键移动光标，直接改内容，改完按 `Ctrl+O` 回车保存，再按 `Ctrl+X` 退出。页面底部一直显示着这些快捷键，忘了抬头看就行。
+
+如果你手滑用了 `vi` 打不开局面：按 `Esc`，然后输入 `:q!` 回车，就能不保存强退出来。
 
 ## 五、启动
 

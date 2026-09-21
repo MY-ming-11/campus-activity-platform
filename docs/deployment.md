@@ -136,6 +136,24 @@ docker compose exec redis redis-cli
 docker compose exec backend sh
 ```
 
+**清理磁盘**
+
+构建缓存会越积越多，40G 的系统盘跑久了也会紧张。看一下占用：
+
+```bash
+df -h /
+docker system df
+```
+
+清理没用的构建缓存和悬空镜像（不会动正在跑的容器和数据卷）：
+
+```bash
+docker builder prune -f
+docker image prune -f
+```
+
+容器日志已经配了轮转（每个容器最多 30MB），不会出现日志把盘撑满的情况。
+
 ## 九、几个必须知道的坑
 
 **改了 `MYSQL_ROOT_PASSWORD` 但数据库已经初始化过——密码不会变。**
@@ -160,5 +178,4 @@ docker compose up -d --build
 - **后端用 root 连数据库**。更严谨的做法是建一个只对 `activity_platform` 有权限的专用账号。
 - **单机单实例**。MySQL、Redis 和后端都在同一台机器上，机器挂了服务就没了。
 - **没有做数据库自动备份**。上面给了命令，但要自己挂 crontab。
-- **没有日志轮转**。容器日志会一直涨，长期跑要配 `logging` 的 `max-size`。
 - **没有监控告警**。

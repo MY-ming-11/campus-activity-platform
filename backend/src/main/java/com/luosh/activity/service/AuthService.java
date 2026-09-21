@@ -2,6 +2,7 @@ package com.luosh.activity.service;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.luosh.activity.common.BizException;
+import com.luosh.activity.dto.ChangePasswordDTO;
 import com.luosh.activity.dto.LoginDTO;
 import com.luosh.activity.dto.RegisterDTO;
 import com.luosh.activity.entity.User;
@@ -61,6 +62,31 @@ public class AuthService {
             throw new BizException(401, "用户不存在");
         }
         return toUserVO(user);
+    }
+
+    /**
+     * 改密码。必须验证旧密码——不然拿到一个还没过期的 token 就能把账号彻底接管。
+     *
+     * 注意：JWT 是无状态的，改完密码之前签发的 token 在过期前依然有效。
+     * 要做到"改密码立即踢掉所有旧登录"，得给用户加一个 token 版本号并写进 JWT，
+     * 这里没做，前端改完会主动退出登录来cover 正常使用场景。
+     */
+    public void changePassword(Long userId, ChangePasswordDTO dto) {
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BizException(401, "用户不存在");
+        }
+        if (!passwordEncoder.matches(dto.getOldPassword(), user.getPassword())) {
+            throw new BizException("当前密码不正确");
+        }
+        if (passwordEncoder.matches(dto.getNewPassword(), user.getPassword())) {
+            throw new BizException("新密码不能和当前密码一样");
+        }
+
+        User update = new User();
+        update.setId(userId);
+        update.setPassword(passwordEncoder.encode(dto.getNewPassword()));
+        userMapper.updateById(update);
     }
 
     private LoginVO toLoginVO(User user) {

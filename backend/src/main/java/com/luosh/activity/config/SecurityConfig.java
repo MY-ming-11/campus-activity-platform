@@ -46,7 +46,11 @@ public class SecurityConfig {
                 // 无状态：不创建 Session，每次请求都靠 token 认人
                 .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+                        // 白名单精确到接口，不用 /api/auth/** 这种通配——
+                        // 那样会把 /api/auth/me、/api/auth/password 一起放进来，
+                        // 全靠 Controller 里自己兜底，容易漏。
+                        .requestMatchers(HttpMethod.POST, "/api/auth/login", "/api/auth/register").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/activities", "/api/activities/*").permitAll()
                         .requestMatchers("/api/admin/**").hasRole("ADMIN")
                         .anyRequest().authenticated())

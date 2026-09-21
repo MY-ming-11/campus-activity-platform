@@ -177,6 +177,7 @@ java benchmark/SignupBenchmark.java http://localhost:8080 1000 100
 | DELETE | `/api/activities/{id}/signup` | 取消报名，释放名额 |
 | GET | `/api/signups/my` | 我的报名列表 |
 | POST | `/api/activities/{id}/checkin` | 用签到码核销自己 |
+| PUT | `/api/auth/password` | 修改当前登录用户的密码 |
 
 ### 需管理员角色
 
@@ -201,7 +202,7 @@ java benchmark/SignupBenchmark.java http://localhost:8080 1000 100
 | 活动列表 | `/activities` | 卡片网格，支持按名称搜索 |
 | 活动详情 | `/activities/:id` | 右侧固定报名卡，显示实时余量 |
 | 我的报名 | `/my-signups` | 报名记录与状态，可取消 |
-| 个人中心 | `/profile` | 账号信息 |
+| 个人中心 | `/profile` | 账号信息、修改密码 |
 | 现场签到 | `/checkin` | 输入 6 位签到码，扫码进入时自动签到 |
 | 活动管理 | `/admin/activities` | 管理端表格，含草稿，可按状态筛选 |
 | 新建 / 编辑活动 | `/admin/activities/new` | 表单校验与时间先后关系校验 |
@@ -350,6 +351,7 @@ function beforeUnloadListener() {
 - 压测会往库里写 `bench_0` ~ `bench_999` 这批用户和几个测试活动，演示前用 `sql/cleanup-benchmark.sql` 清掉。
 - 压测程序是自己写的（`benchmark/SignupBenchmark.java`），没有用 JMeter。理由是 JMeter 需要装 JDK 之外的独立工具、写 XML 测试计划，而这次要验证的核心——"同一瞬间发车 + 精确核对成功数"——用 150 行 Java 就能说清楚，而且用上了 Java 21 的虚拟线程。
 - 签到码用的是 HMAC 摘要折算成 6 位数字，依赖 30 秒轮换和限流来兜底。如果要做成银行 U 盾那种强度，应该换成 TOTP 标准算法（RFC 6238）并把码长提到 8 位。
+- **改密码不会踢掉已经签发的 token。** JWT 是无状态的，服务端不记录已发出的 token，所以改密码前拿到的 token 在过期（24 小时）前依然有效。前端改完会主动退出登录，覆盖正常使用场景；要做到"改密码立即让所有旧登录失效"，需要给用户加一个 token 版本号并写进 JWT 载荷，请求时比对。
 - 演示数据里 `demo01` ~ `demo05` 是五个志愿者账号（密码都是 `demo123456`），「校园歌手大赛初赛」是专门留的签到演示活动：5 人报名、2 人已签到。
 - **Docker 镜像源**：国内直连 `registry-1.docker.io` 会超时（DNS 被污染），拉不下镜像。已经在本机 `~/.docker/daemon.json` 里加了 `registry-mirrors`（`docker.1panel.live` 为主，`docker.nju.edu.cn` 兜底）并重启引擎。换机器部署时记得同样配一份，或者用云厂商的内网镜像仓库。
 - **本机 Docker 环境有两处特殊**：一是 `docker.exe` 和 `docker-credential-desktop` 不在 PATH 里（实际在 `%LOCALAPPDATA%\Programs\DockerDesktop\resources\bin`），用之前要先加进 PATH；二是 80 端口被 Steam++ 占着，所以本地验证用的是 `WEB_PORT=8000`。

@@ -1,6 +1,7 @@
 package com.luosh.activity.controller;
 
 import com.luosh.activity.common.R;
+import com.luosh.activity.dto.ChangePasswordDTO;
 import com.luosh.activity.dto.LoginDTO;
 import com.luosh.activity.dto.RegisterDTO;
 import com.luosh.activity.security.CurrentUser;
@@ -13,6 +14,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -41,5 +43,12 @@ public class AuthController {
     @GetMapping("/me")
     public R<UserVO> me() {
         return R.ok(authService.me(CurrentUser.id()));
+    }
+
+    @Operation(summary = "修改当前登录用户的密码")
+    @PutMapping("/password")
+    public R<Void> changePassword(@RequestBody @Valid ChangePasswordDTO dto) {
+        authService.changePassword(CurrentUser.id(), dto);
+        return R.ok();
     }
 }

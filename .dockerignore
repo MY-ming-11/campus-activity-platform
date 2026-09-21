@@ -1,0 +1,10 @@
+# 构建镜像时不要把这些送进上下文，否则会拖慢构建甚至污染镜像
+**/node_modules
+**/dist
+**/target
+.git
+.idea
+.vscode
+output
+.playwright-cli
+*.log

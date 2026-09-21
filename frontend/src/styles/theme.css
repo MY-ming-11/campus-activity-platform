@@ -1,0 +1,118 @@
+/*
+ * 设计说明
+ * ---------
+ * 主题是「教务处公告栏的现代重做」：信息密度偏高，学生扫列表时真正要看的是
+ * 时间、地点和还剩多少名额，所以排版服务于快速扫读，不做大幅留白的展示型页面。
+ *
+ * 主色是深墨蓝，橙色只留给两个场景：报名这个动作，以及余量紧张。
+ * 这是唯一一处「花钱」的地方，其余全部保持安静。
+ */
+
+:root {
+  --ink: #12233a;
+  --ink-soft: #41546b;
+  --muted: #7c8798;
+  --paper: #f5f7fa;
+  --surface: #ffffff;
+  --line: #e3e8ef;
+  --signal: #d9480f;
+  --signal-soft: #fdf0e9;
+  --ok: #2f9e44;
+  --ok-soft: #ebf7ee;
+  --radius: 10px;
+
+  /* 让 Element Plus 的主色跟着设计走，而不是默认的蓝 */
+  --el-color-primary: #12233a;
+  --el-color-primary-light-3: #3b5069;
+  --el-color-primary-light-5: #6b7f94;
+  --el-color-primary-light-7: #9daabc;
+  --el-color-primary-light-8: #bbc4cf;
+  --el-color-primary-light-9: #e7ebf0;
+  --el-color-primary-dark-2: #0b1725;
+  --el-border-radius-base: 8px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: "PingFang SC", "HarmonyOS Sans SC", "Microsoft YaHei", system-ui,
+    -apple-system, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 数字统一用等宽数字，余量跳动时不会左右晃 */
+.tnum {
+  font-variant-numeric: tabular-nums;
+}
+
+.page {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 28px 24px 64px;
+}
+
+.page-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.page-title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.page-sub {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.label {
+  color: var(--muted);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.surface {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+
+/* 键盘可达性：任何可聚焦元素都要看得见焦点 */
+:focus-visible {
+  outline: 2px solid var(--signal);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: 18px 14px 48px;
+  }
+  .page-title {
+    font-size: 20px;
+  }
+}

@@ -1,0 +1,46 @@
+package com.luosh.activity.controller;
+
+import com.luosh.activity.common.R;
+import com.luosh.activity.security.CurrentUser;
+import com.luosh.activity.service.SignupService;
+import com.luosh.activity.vo.MySignupVO;
+import com.luosh.activity.vo.SignupResultVO;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import java.util.List;
+
+@Tag(name = "报名")
+@RestController
+@RequestMapping("/api")
+@RequiredArgsConstructor
+public class SignupController {
+
+    private final SignupService signupService;
+
+    @Operation(summary = "报名抢名额")
+    @PostMapping("/activities/{activityId}/signup")
+    public R<SignupResultVO> signup(@PathVariable Long activityId) {
+        return R.ok(signupService.signup(activityId, CurrentUser.id()));
+    }
+
+    @Operation(summary = "取消报名")
+    @DeleteMapping("/activities/{activityId}/signup")
+    public R<Void> cancel(@PathVariable Long activityId) {
+        signupService.cancel(activityId, CurrentUser.id());
+        return R.ok();
+    }
+
+    @Operation(summary = "我的报名")
+    @GetMapping("/signups/my")
+    public R<List<MySignupVO>> mySignups() {
+        return R.ok(signupService.mySignups(CurrentUser.id()));
+    }
+}

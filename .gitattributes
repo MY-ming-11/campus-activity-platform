@@ -1,0 +1,15 @@
+# 仓库里统一存 LF。
+# 这个项目要在 Linux 容器里构建，行尾如果被 Windows 转成 CRLF，
+# Dockerfile 的续行符和 shell 脚本都会失效，而且是那种只在别人机器上复现的坑。
+* text=auto eol=lf
+
+# Windows 上用的脚本保留 CRLF
+*.bat text eol=crlf
+*.ps1 text eol=crlf
+
+# 二进制文件不做行尾转换
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.ico binary
+*.jar binary

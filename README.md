@@ -91,6 +91,8 @@ npm run dev
 
 打开 <http://localhost:5173> 看页面，<http://localhost:8080/swagger-ui.html> 看接口文档。
 
+接口文档里试需要登录的接口：先展开 `POST /api/auth/login` 点 Execute 拿一个 token，再点页面右上角 **Authorize** 把 token 粘进去（不用带 `Bearer ` 前缀），之后所有带锁图标的接口就都能直接 Execute 了。
+
 前端开发服务器会把 `/api` 转发到 8080，所以前端代码里只写相对路径，不存在跨域问题；生产环境由 Nginx 做同样的事，两边写法完全一致。
 
 ### 方式二：Docker 一键起

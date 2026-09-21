@@ -50,7 +50,12 @@ const routes = [
     component: () => import('@/layouts/AdminLayout.vue'),
     meta: { requiresAuth: true, requiresAdmin: true },
     children: [
-      { path: '', redirect: '/admin/activities' },
+      { path: '', redirect: '/admin/dashboard' },
+      {
+        path: 'dashboard',
+        name: 'admin-dashboard',
+        component: () => import('@/views/admin/AdminDashboardView.vue')
+      },
       {
         path: 'activities',
         name: 'admin-activities',

@@ -19,6 +19,7 @@ function logout() {
         管理后台
       </div>
       <nav class="side__nav">
+        <router-link to="/admin/dashboard" class="side__link">数据看板</router-link>
         <router-link to="/admin/activities" class="side__link">活动管理</router-link>
       </nav>
       <router-link to="/activities" class="side__back">← 回到前台</router-link>

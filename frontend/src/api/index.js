@@ -36,3 +36,8 @@ export const checkinApi = {
   manual: (activityId, signupId) =>
     request.post(`/admin/activities/${activityId}/checkins`, { signupId })
 }
+
+export const dashboardApi = {
+  /** 跨活动看板：总览 + 报名趋势 + 活动排行 */
+  overview: () => request.get('/admin/dashboard')
+}

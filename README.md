@@ -20,6 +20,8 @@
 |---|---|
 | ![核销台](output/playwright/06-核销台.png) | ![学生签到](output/playwright/07-学生签到页.png) |
 
+![数据看板](output/playwright/10-数据看板.png)
+
 上面几张是本机开发环境。下面这张是 `docker compose` 起的完整部署，Nginx + 后端 + MySQL + Redis 四个容器：
 
 ![Docker 部署](output/playwright/09-Docker部署-活动列表.png)
@@ -176,6 +178,7 @@ java benchmark/SignupBenchmark.java http://localhost:8080 1000 100
 | GET | `/api/admin/activities/{id}/checkin-code` | 当前签到码（大屏用） |
 | GET | `/api/admin/activities/{id}/checkins` | 核销台数据：名单与到场统计 |
 | POST | `/api/admin/activities/{id}/checkins` | 手动核销某条报名 |
+| GET | `/api/admin/dashboard` | 跨活动看板：总览、14 天报名趋势、活动排行 |
 
 ## 前端
 
@@ -192,6 +195,7 @@ java benchmark/SignupBenchmark.java http://localhost:8080 1000 100
 | 活动管理 | `/admin/activities` | 管理端表格，含草稿，可按状态筛选 |
 | 新建 / 编辑活动 | `/admin/activities/new` | 表单校验与时间先后关系校验 |
 | 核销台 | `/admin/activities/:id/checkins` | 大屏签到码、二维码、倒计时、到场统计与名单 |
+| 数据看板 | `/admin/dashboard` | 整体总览、14 天报名趋势、活动报名排行 |
 
 `/my-signups`、`/profile` 需要登录，`/admin/**` 需要管理员角色，拦截在路由守卫里做。
 
@@ -202,6 +206,14 @@ java benchmark/SignupBenchmark.java http://localhost:8080 1000 100
 **签名元素是余量刻度条**（`components/QuotaBar.vue`）。它是这个产品里唯一真正重要的数字的可视化：按剩余比例填充，余量低于 20% 变橙并显示「只剩 N 个」，售罄变灰显示「名额已满」。它既是装饰也是信息，不是纯装饰。
 
 配色上深墨蓝 `#12233A` 作主色，橙 `#D9480F` 只出现在两处：报名这个动作，以及余量紧张。其余保持安静。
+
+### 数据看板的图表是手写的
+
+看板只用到两种图：14 天报名趋势（柱状）和活动报名排行（横条）。这两种用 SVG 和 CSS 就能画，没必要为它们引一个 ECharts——那是 1MB 的包体，而且默认样式跟上面这套设计语言对不上，改起来比自己画还费劲。
+
+**排行那根横条一条杠表达两个维度**：灰色部分长度是该活动的报名数（相对报名最多的活动），里面的绿色部分是这些人里真到场的比例。所以一眼能看出"哪个活动人多"和"哪个活动人来了"两件事，不用在两个图之间来回看。
+
+如果以后要看的是多序列折线、热力图、可缩放的时间轴这类图，再换图表库不迟。
 
 ### 一处需要注意的时序
 
@@ -290,7 +302,8 @@ code   = HMAC-SHA256(checkin_secret, 活动ID + ":" + 时间片) 的前 4 字节
 - [x] **第 2 周**：抢名额核心（Redis Lua 预扣、本地消息表异步落库、幂等、限流）+ 压测报告
 - [x] **第 3 周**：Vue 前端 7 个页面、路由权限守卫、Nginx + Docker 部署配置
 - [x] **第 4 周**：动态签到码、扫码/输码签到、现场核销台、到场统计
-- [ ] **待办**：跨活动的数据看板、演示录屏
+- [x] **第 5 周**：跨活动数据看板（总览、14 天报名趋势、活动报名排行）
+- [ ] **待办**：演示录屏
 
 ## 踩过的一个坑：窗口无法最小化
 

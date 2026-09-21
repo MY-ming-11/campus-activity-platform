@@ -98,10 +98,15 @@ npm run dev
 ### 方式二：Docker 一键起
 
 ```bash
+cp .env.example .env          # 首次部署：改掉里面的数据库密码和 JWT 密钥
 docker compose up -d --build
 ```
 
+端口、数据库密码、JWT 密钥都收在 `.env` 里，`.env` 已被 `.gitignore` 排除，不会跟着仓库公开。这些变量都有默认值，本机开发不建 `.env` 也能直接跑。
+
 起来之后直接访问 <http://localhost>。MySQL 会自动执行 `sql/schema.sql`，后端等 MySQL 和 Redis 都健康后才启动。
+
+**要部署到公网服务器，看 [docs/deployment.md](docs/deployment.md)**——从买服务器、装 Docker、配镜像源到域名 HTTPS 和日常备份，按顺序走一遍。
 
 Nginx 在这个组合里干三件事：托管前端静态文件、把 `/api` 反代到后端容器、以及把找不到的路径回退到 `index.html`——最后这条是单页应用必须的，不然用户刷新 `/activities/6` 会得到 404。
 

@@ -126,11 +126,41 @@ docker compose exec -T mysql mysqldump -uroot -p'你的密码' activity_platform
 **更新代码**
 
 ```bash
-git pull
-docker compose up -d --build
+git pull                          # 拉最新代码
+docker compose up -d --build      # 重建并重启
 ```
 
-数据在 Docker volume 里，重建容器不会丢。
+数据在 Docker volume 里，重建容器不会丢。`.env` 被 git 忽略，`git pull` 不会覆盖你在服务器上填的真实密码。
+
+几条要知道的：
+
+- **只改了代码、没改依赖时，`git pull` 之后 `--build` 会很快**——Docker 的层缓存会命中，通常十几秒。
+- **构建失败不会影响正在跑的服务**。compose 会先构建，构建成功才替换容器，所以构建炸了旧版本还在运行，不会把线上搞挂。
+- **改回旧版本**：
+
+  ```bash
+  git log --oneline          # 找到要回退到哪个提交
+  git checkout <提交号>
+  docker compose up -d --build
+  ```
+
+  想回到最新版就 `git checkout main && git pull`。
+
+**改数据库结构要额外做一步（容易忽略）**
+
+容器里的 MySQL 只在**数据目录为空时**执行 `sql/schema.sql`。库已经建好之后，你就算改了 `sql/schema.sql` 并重新部署，**表结构也不会变**——新加的字段根本不存在，后端一跑就报 `Unknown column`。
+
+改表结构时要手动执行：
+
+```bash
+# 进 MySQL 手动改
+docker compose exec mysql mysql -uroot -p activity_platform
+
+# 或者把 ALTER 语句写成一个文件在宿主机上执行
+docker compose exec -T mysql mysql -uroot -p activity_platform < 你的改动.sql
+```
+
+开发阶段如果数据不重要，最省事的办法是 `docker compose down -v` 清库重建，让 `schema.sql` 重新跑一遍。
 
 **连进容器排查**
 

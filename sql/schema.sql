@@ -44,6 +44,7 @@ CREATE TABLE IF NOT EXISTS activity
     signup_start   DATETIME     NOT NULL COMMENT '报名开始时间',
     signup_end     DATETIME     NOT NULL COMMENT '报名截止时间',
     quota          INT          NOT NULL DEFAULT 0 COMMENT '名额上限',
+    occupied       INT          NOT NULL DEFAULT 0 COMMENT '已占用名额，乐观锁策略用它做原子扣减',
     checkin_secret VARCHAR(64)  NOT NULL COMMENT '签到码签名密钥',
     status         VARCHAR(16)  NOT NULL DEFAULT 'DRAFT' COMMENT '状态：DRAFT / PUBLISHED / CLOSED',
     creator_id     BIGINT       NOT NULL COMMENT '创建人 ID',

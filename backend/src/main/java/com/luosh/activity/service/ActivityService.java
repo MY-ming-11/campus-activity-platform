@@ -8,6 +8,7 @@ import com.luosh.activity.dto.ActivityDTO;
 import com.luosh.activity.entity.Activity;
 import com.luosh.activity.mapper.ActivityMapper;
 import com.luosh.activity.mapper.SignupMapper;
+import com.luosh.activity.service.strategy.SignupStrategyResolver;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
@@ -26,6 +27,7 @@ public class ActivityService {
     private final ActivityMapper activityMapper;
     private final SignupMapper signupMapper;
     private final QuotaService quotaService;
+    private final SignupStrategyResolver strategyResolver;
 
     public PageVO<Activity> page(long pageNo, long pageSize, String keyword, String status) {
         LambdaQueryWrapper<Activity> query = new LambdaQueryWrapper<>();
@@ -38,16 +40,27 @@ public class ActivityService {
         query.orderByDesc(Activity::getCreateTime);
 
         PageVO<Activity> result = PageVO.of(activityMapper.selectPage(new Page<>(pageNo, pageSize), query));
-        quotaService.fillRemaining(result.records());
+        strategyResolver.active().fillRemaining(result.records());
         return result;
     }
 
-    public Activity detail(Long id) {
+    /**
+     * 只查活动本身，不回填剩余名额。
+     *
+     * 报名链路用这个而不是 detail()：回填剩余名额在悲观锁策略下要 COUNT 一次报名表，
+     * 那会给报名请求凭空加一次查询，对比实验的数据就不干净了。
+     */
+    public Activity load(Long id) {
         Activity activity = activityMapper.selectById(id);
         if (activity == null) {
             throw new BizException(404, "活动不存在");
         }
-        quotaService.fillRemaining(List.of(activity));
+        return activity;
+    }
+
+    public Activity detail(Long id) {
+        Activity activity = load(id);
+        strategyResolver.active().fillRemaining(List.of(activity));
         return activity;
     }
 

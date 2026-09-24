@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -25,16 +26,21 @@ public class SignupController {
 
     private final SignupService signupService;
 
-    @Operation(summary = "报名抢名额")
+    @Operation(summary = "报名抢名额",
+            description = "请求头 X-Signup-Strategy 可以在对比实验时覆盖并发策略（需服务端开启 allow-override）")
     @PostMapping("/activities/{activityId}/signup")
-    public R<SignupResultVO> signup(@PathVariable Long activityId) {
-        return R.ok(signupService.signup(activityId, CurrentUser.id()));
+    public R<SignupResultVO> signup(@PathVariable Long activityId,
+                                    @RequestHeader(value = "X-Signup-Strategy", required = false)
+                                    String strategy) {
+        return R.ok(signupService.signup(activityId, CurrentUser.id(), strategy));
     }
 
     @Operation(summary = "取消报名")
     @DeleteMapping("/activities/{activityId}/signup")
-    public R<Void> cancel(@PathVariable Long activityId) {
-        signupService.cancel(activityId, CurrentUser.id());
+    public R<Void> cancel(@PathVariable Long activityId,
+                          @RequestHeader(value = "X-Signup-Strategy", required = false)
+                          String strategy) {
+        signupService.cancel(activityId, CurrentUser.id(), strategy);
         return R.ok();
     }
 

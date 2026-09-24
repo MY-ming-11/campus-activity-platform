@@ -1,5 +1,11 @@
 server:
   port: 8080
+  tomcat:
+    # 接受队列长度。默认只有 100，压测时 1000 个连接同一瞬间打进来会被操作系统直接拒绝，
+    # 客户端表现为 ConnectException，看起来像服务端挂了其实是队列满了。
+    # 注意这调的是"能排队多少"，不是"能同时处理多少"——并发处理能力仍然受线程数限制。
+    accept-count: 1000
+    max-connections: 10000
   servlet:
     encoding:
       charset: UTF-8
@@ -47,6 +53,16 @@ mybatis-plus:
 jwt:
   secret: ${JWT_SECRET:local-dev-secret-please-change-me-32bytes}
   expire-minutes: 1440
+
+# 报名并发控制策略。三种实现见 com.luosh.activity.service.strategy 包
+#   redis        Redis 预扣 + 本地消息表异步落库（默认，吞吐最高）
+#   pessimistic  数据库悲观锁 SELECT ... FOR UPDATE
+#   optimistic   数据库乐观锁 条件更新 + 唯一索引
+signup:
+  strategy: ${SIGNUP_STRATEGY:redis}
+  # 允许请求头 X-Signup-Strategy 临时覆盖策略，只给对比实验用。
+  # 生产环境务必保持 false，否则等于给报名接口开了个后门。
+  allow-override: ${SIGNUP_ALLOW_OVERRIDE:false}
 
 springdoc:
   swagger-ui:

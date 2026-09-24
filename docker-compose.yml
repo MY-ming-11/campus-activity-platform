@@ -97,6 +97,10 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: 6379
       JWT_SECRET: ${JWT_SECRET:-local-dev-secret-please-change-me-32bytes}
+      # 报名并发策略：redis（默认）/ pessimistic / optimistic
+      SIGNUP_STRATEGY: ${SIGNUP_STRATEGY:-redis}
+      # 允许请求头临时切换策略，只给对比实验用。生产环境保持 false。
+      SIGNUP_ALLOW_OVERRIDE: ${SIGNUP_ALLOW_OVERRIDE:-false}
     ports:
       # 只在需要看接口文档时对外开放，平时建议把安全组里的这条关掉
       - "${API_PORT:-8080}:8080"

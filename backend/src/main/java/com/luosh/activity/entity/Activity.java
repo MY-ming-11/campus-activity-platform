@@ -36,6 +36,13 @@ public class Activity {
     private Integer quota;
 
     /**
+     * 已占用名额。只有「乐观锁」报名策略会用它做原子扣减：
+     * UPDATE activity SET occupied = occupied + 1 WHERE id = ? AND occupied < quota
+     * 影响行数为 1 就是抢到了。其他策略不读也不写这个字段。
+     */
+    private Integer occupied;
+
+    /**
      * 动态签到码的签名密钥。
      * 绝对不能返回给前端——前端只要能拿到它就能自己签出合法签到码，防代签就失效了。
      */

@@ -6,6 +6,7 @@ import com.luosh.activity.vo.MySignupVO;
 import org.apache.ibatis.annotations.Insert;
 import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
+import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
 
@@ -27,6 +28,34 @@ public interface SignupMapper extends BaseMapper<Signup> {
             ON DUPLICATE KEY UPDATE status = 'SIGNED', signup_time = NOW()
             """)
     int upsertSignup(@Param("activityId") Long activityId, @Param("userId") Long userId);
+
+    /**
+     * 纯插入，冲突时忽略（不抛异常，返回影响行数 0）。
+     *
+     * 乐观锁策略靠它做同一用户的幂等：并发双击时唯一索引只让一条进来，
+     * 另一条返回 0，就不会出现"名额扣了两次但只有一条报名"的情况。
+     */
+    @Insert("""
+            INSERT IGNORE INTO activity_signup (activity_id, user_id, status, signup_time)
+            VALUES (#{activityId}, #{userId}, 'SIGNED', NOW())
+            """)
+    int insertIgnore(@Param("activityId") Long activityId, @Param("userId") Long userId);
+
+    /** 取消过的报名重新激活 */
+    @Update("""
+            UPDATE activity_signup
+            SET status = 'SIGNED', signup_time = NOW()
+            WHERE id = #{signupId}
+            """)
+    int markSigned(@Param("signupId") Long signupId);
+
+    /** 加锁读某条报名，用来拿到最新的提交状态 */
+    @Select("""
+            SELECT * FROM activity_signup
+            WHERE activity_id = #{activityId} AND user_id = #{userId}
+            FOR UPDATE
+            """)
+    Signup selectForUpdate(@Param("activityId") Long activityId, @Param("userId") Long userId);
 
     /** 已占用的名额数（已取消的不算）。 */
     @Select("SELECT COUNT(*) FROM activity_signup WHERE activity_id = #{activityId} AND status <> 'CANCELED'")

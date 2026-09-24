@@ -21,6 +21,11 @@ import java.util.regex.Pattern;
  *
  *   java benchmark/SignupBenchmark.java [baseUrl] [并发用户数] [名额]
  *   java benchmark/SignupBenchmark.java http://localhost:8080 1000 100
+ *   java benchmark/SignupBenchmark.java http://localhost:8080 1000 100 optimistic
+ *
+ * 第四个参数是并发策略，会通过请求头 X-Signup-Strategy 传给后端，
+ * 用来跑「Redis 预扣 / 悲观锁 / 乐观锁」三种方案的对比实验。
+ * 服务端要开 signup.allow-override 才认这个头，详见 application.yml。
  *
  * 用虚拟线程承载并发用户：1000 个平台线程要占掉约 1GB 栈内存，
  * 虚拟线程只在真正阻塞时才挂起，同样的并发量内存占用可以忽略。
@@ -35,19 +40,30 @@ public class SignupBenchmark {
     private static final String BENCH_PASSWORD = "bench123456";
     private static final DateTimeFormatter FMT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /** 失败样本。只留几条，够定位问题就行，不占内存 */
+    private static final List<String> FAILURE_SAMPLES = java.util.Collections.synchronizedList(new ArrayList<>());
+
     private static final HttpClient CLIENT = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(10))
             .executor(Executors.newVirtualThreadPerTaskExecutor())
             .build();
 
+    /** 对比实验用的策略覆盖，null 表示用服务端配置的默认策略 */
+    private static String strategy = null;
+
     public static void main(String[] args) throws Exception {
         String baseUrl = at(args, 0, "http://localhost:8080");
         int userCount = Integer.parseInt(at(args, 1, "1000"));
         int quota = Integer.parseInt(at(args, 2, "100"));
+        String strategyArg = at(args, 3, "");
+        if (!strategyArg.isBlank()) {
+            strategy = strategyArg;
+        }
 
         log("目标服务   : " + baseUrl);
         log("并发用户数 : " + userCount);
         log("活动名额   : " + quota);
+        log("并发策略   : " + (strategy == null ? "（服务端默认）" : strategy));
         log("");
 
         String adminToken = login(baseUrl, "admin", "admin123");
@@ -92,6 +108,10 @@ public class SignupBenchmark {
                         classify(body, won, soldOut, limited, already, failed);
                     } catch (Exception e) {
                         latencies[index] = 0;
+                        if (FAILURE_SAMPLES.size() < 5) {
+                            FAILURE_SAMPLES.add("exception: " + e.getClass().getSimpleName()
+                                    + " " + e.getMessage());
+                        }
                         failed.incrementAndGet();
                     }
                 });
@@ -139,7 +159,18 @@ public class SignupBenchmark {
             won.incrementAndGet();
             return;
         }
+        if (FAILURE_SAMPLES.size() < 5) {
+            FAILURE_SAMPLES.add("code=" + code + " body=" + shorten(body));
+        }
         failed.incrementAndGet();
+    }
+
+    private static String shorten(String body) {
+        if (body == null) {
+            return "<null>";
+        }
+        String flat = body.replaceAll("\\s+", " ");
+        return flat.length() <= 160 ? flat : flat.substring(0, 160) + "...";
     }
 
     private static void printReport(int userCount, int quota, long[] latencies, long remaining, long activityId) {
@@ -149,6 +180,7 @@ public class SignupBenchmark {
         log("================== 压测报告 ==================");
         log("并发用户数     : " + userCount);
         log("活动名额       : " + quota);
+        log("并发策略       : " + (strategy == null ? "（服务端默认）" : strategy));
         log("最终剩余名额   : " + remaining);
         if (valid.length > 0) {
             log("平均延迟       : " + ms(avg(valid)) + " ms");
@@ -159,6 +191,10 @@ public class SignupBenchmark {
         }
         log("---------------------------------------------");
         log("活动 id        : " + activityId + "（核对数据库用）");
+        if (!FAILURE_SAMPLES.isEmpty()) {
+            log("失败样本       :");
+            FAILURE_SAMPLES.forEach(sample -> log("  " + sample));
+        }
         log("=============================================");
     }
 
@@ -250,6 +286,9 @@ public class SignupBenchmark {
                 .POST(HttpRequest.BodyPublishers.ofString(body, java.nio.charset.StandardCharsets.UTF_8));
         if (token != null) {
             builder.header("Authorization", "Bearer " + token);
+        }
+        if (strategy != null) {
+            builder.header("X-Signup-Strategy", strategy);
         }
         return CLIENT.send(builder.build(), HttpResponse.BodyHandlers.ofString()).body();
     }

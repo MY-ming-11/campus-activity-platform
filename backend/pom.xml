@@ -77,6 +77,21 @@
     </dependencies>
 
     <build>
+        <!--
+          把仓库根目录的 sql/schema.sql 挂进测试类路径。
+          这样集成测试用的建表语句和线上是同一份，不用复制一份 DDL 出来慢慢跑偏。
+        -->
+        <testResources>
+            <testResource>
+                <directory>src/test/resources</directory>
+            </testResource>
+            <testResource>
+                <directory>../sql</directory>
+                <includes>
+                    <include>schema.sql</include>
+                </includes>
+            </testResource>
+        </testResources>
         <plugins>
             <plugin>
                 <groupId>org.springframework.boot</groupId>

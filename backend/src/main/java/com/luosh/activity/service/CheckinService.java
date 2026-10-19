@@ -1,7 +1,6 @@
 package com.luosh.activity.service;
 
 import com.luosh.activity.common.BizException;
-import com.luosh.activity.common.HmacUtil;
 import com.luosh.activity.common.RedisKeys;
 import com.luosh.activity.entity.Activity;
 import com.luosh.activity.entity.Checkin;
@@ -18,7 +17,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
-import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -40,7 +38,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class CheckinService {
 
-    private static final long SLOT_SECONDS = 30;
     private static final String STATUS_PUBLISHED = "PUBLISHED";
     private static final String STATUS_CANCELED = "CANCELED";
     private static final String STATUS_CHECKED = "CHECKED";
@@ -57,13 +54,14 @@ public class CheckinService {
     private final SignupMapper signupMapper;
     private final CheckinMapper checkinMapper;
     private final RateLimiter rateLimiter;
+    private final CheckinCodeGenerator codeGenerator;
 
     /** 大屏展示用的当前签到码。 */
     public CheckinCodeVO currentCode(Long activityId) {
         Activity activity = activityService.detail(activityId);
-        long nowSeconds = System.currentTimeMillis() / 1000;
-        long secondsLeft = SLOT_SECONDS - (nowSeconds % SLOT_SECONDS);
-        return new CheckinCodeVO(codeOf(activity, nowSeconds / SLOT_SECONDS), secondsLeft);
+        String code = codeGenerator.codeOf(
+                activity.getId(), activity.getCheckinSecret(), codeGenerator.currentSlot());
+        return new CheckinCodeVO(code, codeGenerator.secondsLeftInSlot());
     }
 
     /** 学生用签到码核销自己。 */
@@ -76,8 +74,8 @@ public class CheckinService {
         checkSignable(activity);
         checkWindow(activity);
 
-        long slot = System.currentTimeMillis() / 1000 / SLOT_SECONDS;
-        if (!codeOf(activity, slot).equals(code) && !codeOf(activity, slot - 1).equals(code)) {
+        if (!codeGenerator.accepts(
+                activity.getId(), activity.getCheckinSecret(), code, codeGenerator.currentSlot())) {
             throw new BizException("签到码不正确，或者已经过期了");
         }
 
@@ -159,13 +157,4 @@ public class CheckinService {
         }
     }
 
-    private String codeOf(Activity activity, long slot) {
-        byte[] mac = HmacUtil.hmacSha256(
-                activity.getCheckinSecret().getBytes(StandardCharsets.UTF_8),
-                activity.getId() + ":" + slot);
-        // 取摘要前 4 字节拼成整数，再折算到 6 位。用位运算拼而不是取子串，
-        // 是为了让 4 个字节全部参与，避免只用前半段导致分布不均。
-        int value = ((mac[0] & 0xFF) << 24) | ((mac[1] & 0xFF) << 16) | ((mac[2] & 0xFF) << 8) | (mac[3] & 0xFF);
-        return String.format("%06d", Math.floorMod(value, 1_000_000));
-    }
 }

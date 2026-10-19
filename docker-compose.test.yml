@@ -1,0 +1,19 @@
+# 测试专用的基础设施：只暴露 MySQL 和 Redis 的端口给宿主机上的 Maven 测试用。
+#
+# 用法（用独立的项目名，容器和数据卷跟开发环境分开，不会污染演示数据）：
+#   docker compose -p activity-test -f docker-compose.yml -f docker-compose.test.yml up -d mysql redis
+#   cd backend && mvn test -Dintegration=true
+#
+# 端口故意选 3307 / 6380，避开本机可能已经占用的 3306（MySQL 服务）和 6379（Memurai）。
+services:
+
+  mysql:
+    # container_name 是全局唯一的，不换名字的话两个 compose 项目会撞车
+    container_name: ap-test-mysql
+    ports:
+      - "3307:3306"
+
+  redis:
+    container_name: ap-test-redis
+    ports:
+      - "6380:6379"

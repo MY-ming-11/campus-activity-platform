@@ -4,9 +4,16 @@
 
 项目重点不在功能数量，而在"抢名额"这一段的并发与一致性处理——这是后端面试最容易被追问、也最容易露怯的地方。
 
-**实测数据**：1000 并发抢 100 个名额，精确成功 100 人、0 超卖、0 异常，吞吐 979 req/s。完整报告见 [docs/benchmark-report.md](docs/benchmark-report.md)。
+**实测数据**：1000 并发抢 100 个名额，三种并发策略都精确成功 100 人、零超卖；Redis 预扣吞吐 4901 req/s，两个数据库方案约 560–600 req/s。
 
-报名接口的并发控制做成了**可切换的三种策略**（Redis 预扣 / 数据库悲观锁 / 数据库乐观锁），并做了对比实验：三套方案都零超卖，但吞吐差了 8 倍多。实验方法、数据和「乐观锁为什么没比悲观锁快」的分析见 [docs/concurrency-experiment.md](docs/concurrency-experiment.md)。
+## 技术亮点
+
+- **并发一致性**：Redis Lua 原子预扣 → 本地消息表异步落库 → 定时补偿回滚。1000 并发零超卖。
+- **可对比的设计**：报名并发控制抽象成三种策略（Redis 预扣 / 悲观锁 / 乐观锁），同一套业务逻辑下跑出对比数据，并定位到「连接池先于锁成为瓶颈」。
+- **动态签到码**：HMAC + 30 秒时间片轮转，密钥不出服务端，截图转发即失效。
+- **完整交付**：Docker 一键部署、360px 起手机自适应、12 个单元测试 + 3 个并发集成测试。
+
+实验方法和完整数据见 [docs/concurrency-experiment.md](docs/concurrency-experiment.md)，早期压测报告见 [docs/benchmark-report.md](docs/benchmark-report.md)。
 
 ## 界面
 
@@ -44,6 +51,28 @@
 | 接口文档 | springdoc-openapi 2.3.0 |
 | 前端 | Vue 3 / Vite / Pinia / Element Plus |
 | 部署 | Docker Compose + Nginx |
+| 测试 | JUnit 5 / AssertJ / Spring Boot Test |
+
+## 架构
+
+```
+浏览器（Vue 3 SPA：学生端 / 管理端）
+    │  HTTP
+    ▼
+Nginx ─── 静态资源（打包后的 dist/）
+    │      /api 反向代理
+    ▼
+Spring Boot 3
+    ├──▶ MySQL 8   活动、报名、签到、流程数据
+    └──▶ Redis 7   名额余量、限流令牌桶、幂等集合、签到码
+```
+
+报名链路上，Redis 是名额的权威来源，MySQL 只承接真正成功的写入：
+
+```
+限流 → 校验活动 → Redis Lua 原子预扣 → 写本地消息表 → 定时任务异步落库
+                （查重+扣减一体）        （PENDING）      （失败重试 5 次后回滚名额）
+```
 
 ## 目录结构
 
@@ -57,7 +86,9 @@
 │   │   ├── entity/ mapper/  数据模型与持久层
 │   │   ├── dto/ vo/         出入参
 │   │   ├── service/         业务逻辑
+│   │   │   └── strategy/    三种报名并发策略
 │   │   └── controller/      接口层
+│   ├── src/test/java/       单元测试 + 并发集成测试
 │   └── Dockerfile
 ├── frontend/                前端（Vue 3 + Vite）
 │   ├── src/
@@ -70,10 +101,15 @@
 │   └── Dockerfile
 ├── deploy/nginx.conf        生产环境的 Nginx 配置
 ├── benchmark/               压测程序（JDK 21 单文件，虚拟线程）
-├── docs/benchmark-report.md 压测报告
+├── docs/
+│   ├── concurrency-experiment.md  三种并发策略的对比实验
+│   ├── benchmark-report.md        早期压测报告
+│   ├── ci.md                      测试分层与 CI 配置
+│   └── deployment.md              服务器部署指南
 ├── sql/schema.sql           建表脚本（可重复执行）
 ├── sql/cleanup-benchmark.sql 清理压测数据
-└── docker-compose.yml       一键起 Nginx + 后端 + MySQL + Redis
+├── docker-compose.yml       一键起 Nginx + 后端 + MySQL + Redis
+└── docker-compose.test.yml  并发测试专用的端口覆盖
 ```
 
 ## 快速开始
@@ -381,6 +417,6 @@ function beforeUnloadListener() {
 - 压测程序是自己写的（`benchmark/SignupBenchmark.java`），没有用 JMeter。理由是 JMeter 需要装 JDK 之外的独立工具、写 XML 测试计划，而这次要验证的核心——"同一瞬间发车 + 精确核对成功数"——用 150 行 Java 就能说清楚，而且用上了 Java 21 的虚拟线程。
 - 签到码用的是 HMAC 摘要折算成 6 位数字，依赖 30 秒轮换和限流来兜底。如果要做成银行 U 盾那种强度，应该换成 TOTP 标准算法（RFC 6238）并把码长提到 8 位。
 - **改密码不会踢掉已经签发的 token。** JWT 是无状态的，服务端不记录已发出的 token，所以改密码前拿到的 token 在过期（24 小时）前依然有效。前端改完会主动退出登录，覆盖正常使用场景；要做到"改密码立即让所有旧登录失效"，需要给用户加一个 token 版本号并写进 JWT 载荷，请求时比对。
-- 演示数据里 `demo01` ~ `demo05` 是五个志愿者账号（密码都是 `demo123456`），「校园歌手大赛初赛」是专门留的签到演示活动：5 人报名、2 人已签到。
-- **Docker 镜像源**：国内直连 `registry-1.docker.io` 会超时（DNS 被污染），拉不下镜像。已经在本机 `~/.docker/daemon.json` 里加了 `registry-mirrors`（`docker.1panel.live` 为主，`docker.nju.edu.cn` 兜底）并重启引擎。换机器部署时记得同样配一份，或者用云厂商的内网镜像仓库。
-- **本机 Docker 环境有两处特殊**：一是 `docker.exe` 和 `docker-credential-desktop` 不在 PATH 里（实际在 `%LOCALAPPDATA%\Programs\DockerDesktop\resources\bin`），用之前要先加进 PATH；二是 80 端口被 Steam++ 占着，所以本地验证用的是 `WEB_PORT=8000`。
+- 本机开发库里留了一批演示数据：`demo01` ~ `demo05`（密码 `demo123456`）和「校园歌手大赛初赛」（5 人报名、2 人已签到），专门用来演示核销台。Docker 那套是独立的数据库，两边数据不互通。
+- **国内服务器部署前先配 Docker 镜像源**。直连 `registry-1.docker.io` 大概率拉不动，`docs/deployment.md` 第二节有现成命令。
+- 本机 80 端口被占用时用 `WEB_PORT=8000` 覆盖；正式服务器上保持默认 80 即可。
